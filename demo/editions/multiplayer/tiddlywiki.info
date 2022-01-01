@@ -1,0 +1,25 @@
+{
+    "description": "Yjs websocket client-server edition",
+    "plugins": [
+        "@tw5/y-websocket",
+        "tiddlywiki/filesystem"
+    ],
+    "themes": [
+        "tiddlywiki/vanilla",
+        "tiddlywiki/snowwhite"
+    ],
+    "build": {
+        "index": [
+            "--rendertiddler",
+            "$:/plugins/@tw5/y-websocket/save/offline",
+            "index.html",
+            "text/plain"
+        ],
+        "favicon": [
+            "--savetiddler",
+            "$:/favicon.ico",
+            "favicon.ico"
+        ]
+    },
+    "yjs-uuid": "b1fbd3fa-cc3e-4270-8f7c-27d814f148cf"
+}

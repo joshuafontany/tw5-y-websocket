@@ -1,0 +1,2 @@
+title: $:/tags/SyncerDropdown
+list: $:/plugins/@tw5/y-websocket/syncer-actions/login-status $:/plugins/@tw5/y-websocket/syncer-actions/login $:/plugins/@tw5/y-websocket/syncer-actions/refresh $:/plugins/@tw5/y-websocket/syncer-actions/logout $:/plugins/@tw5/y-websocket/syncer-actions/save-snapshot $:/plugins/@tw5/y-websocket/syncer-actions/download-tiddlywikicore $:/plugins/@tw5/y-websocket/syncer-actions/copy-logs

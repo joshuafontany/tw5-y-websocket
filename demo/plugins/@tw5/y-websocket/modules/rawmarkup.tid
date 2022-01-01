@@ -1,0 +1,31 @@
+title: $:/plugins/@tw5/y-websocket/rawmarkup
+tags: $:/tags/RawMarkupWikified
+
+`
+<script>
+// Need to initialise these because we run before bootprefix.js and boot.js
+
+window.$tw = window.$tw || {};
+
+$tw.boot = $tw.boot || {};
+
+$tw.hooks = $tw.hooks || { names: {}};
+
+$tw.preloadTiddlers = $tw.preloadTiddlers || [];
+
+$tw.boot.suppressBoot = true;
+
+$tw.y = {
+    binding: null,
+    gcEnabled: `{{{ [{$:/config/yjs/gcEnabled}match[yes]then[true]else[false]] }}}`,
+    host: "`{{$:/config/tiddlyweb/host}}`",
+    persistence: null,
+    session: null,
+    uuid: "`{{$:/status/UUID}}`",
+    wikiDoc: null 
+}
+</script>
+<script src="./files/y-tiddlywiki-core.js" onerror="console.log('Cannot load y-tiddlywiki-core.js');$tw.boot.suppressBoot = false;"></script>
+<script>`
+{{/$:/plugins/@tw5/y-websocket/rawmarkup-boot.js}}
+`</script>`

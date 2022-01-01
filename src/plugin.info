@@ -1,0 +1,10 @@
+{
+  "title": "$:/plugins/@tw5/y-websocket",
+  "description": "Multi-user syncing using Yjs & Websockets",
+  "author": "joshuafontany",
+  "version": "0.1.0",
+  "core-version": ">=5.2.2",
+  "source": "https://github.com/joshuafontany/y-tiddlywiki",
+  "plugin-type": "plugin",
+  "list": "readme.md license"
+}
