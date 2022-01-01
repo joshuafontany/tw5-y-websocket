@@ -11,16 +11,16 @@ module-type: library
 "use strict";
 
 if($tw.node) {
+	const { setupWSConnection } = require('y-websocket/bin/utils');
 	const { uniqueNamesGenerator, adjectives, colors, animals, names } = require('unique-names-generator');
-	const WS = require('ws');
 	const URL = require('url').URL;
+	const WS = require('ws');
 
 /*
 	A simple websocket server extending the `ws` library
 	options: 
 */
 function WebSocketServer(options) {
-	const setupWSConnection = require('y-websocket/bin/utils').setupWSConnection
 	Object.assign(this, new WS.Server(options));
 	// Setup the httpServer
 	this.httpServer = options.httpServer || null;
@@ -29,7 +29,7 @@ function WebSocketServer(options) {
 	// Set the event handlers
 	this.on('listening',this.serverOpened);
 	this.on('close',this.serverClosed);
-	this.on('connection',setupWSConnection);
+	this.on('connection',this.handleWSConnection);
 }
 
 WebSocketServer.prototype = Object.create(WS.Server.prototype);
@@ -48,7 +48,7 @@ WebSocketServer.prototype.serverClosed = function() {
 }
 
 WebSocketServer.prototype.verifyUpgrade = function(request,options) {
-	if(request.url.indexOf("wiki=") == -1 || request.url.indexOf("session=") == -1) {
+	if(request.url.indexOf("wiki=") == -1) {
 		return false
 	}
 	// Compose the state object
@@ -58,7 +58,7 @@ WebSocketServer.prototype.verifyUpgrade = function(request,options) {
 	state.server = options.server;
 	state.ip = request.headers['x-forwarded-for'] ? request.headers['x-forwarded-for'].split(/\s*,\s*/)[0]:
 		request.connection.remoteAddress;
-	state.serverAddress = this.httpServer.protocol + "://" + this.httpServer.address().address + ":" + this.httpServer.address().port;
+	state.serverAddress = state.server.protocol + "://" + this.httpServer.address().address + ":" + this.httpServer.address().port;
 	state.urlInfo = new URL(request.url,state.serverAddress);
 	// Get the principals authorized to access this resource
 	state.authorizationType = "readers";
@@ -79,15 +79,11 @@ WebSocketServer.prototype.verifyUpgrade = function(request,options) {
 	if(!state.server.isAuthorized(state.authorizationType,state.authenticatedUsername)) {
 		return false;
 	}
-	let session = this.sessions.get(state.urlInfo.searchParams.get("session"));
-	return !!session
-		&& state.urlInfo.searchParams.get("wiki") == session.key
-		&& state.authenticatedUsername == session.authenticatedUsername
-		&& state
+	return state.urlInfo.searchParams.get("wiki") == state.boot.wikiInfo['uuid'] && state
 };
 
 /**
- * @param {WebSocket} socket
+ * @param {WebSocket} ws
  * @param {UPGRADE} request
  * @param {$tw server state} state
 	This function handles incomming connections from client sessions.
@@ -95,41 +91,12 @@ WebSocketServer.prototype.verifyUpgrade = function(request,options) {
 	Session objects are defined in $:/plugins/@tw5/y-websocket/y-wssession.js
 	OUTDATED
 */
-WebSocketServer.prototype.handleWSConnection = function(socket,request,state) {
-	if(state && this.sessions.has(state.urlInfo.searchParams.get("session"))) {
-		let session = this.sessions.get(state.urlInfo.searchParams.get("session"));	
-		// Reset the connection state
-		session.ip = state.ip;
-		session.url = state.urlInfo;
-		session.ws = socket;
-		session.connecting = false;
-		session.connected = true;
-		session.synced = false;
-
-		let wikiDoc = $tw.y.getYDoc(session.key);
-		wikiDoc.sessions.set(session, new Set())
-		session.logger.log(`Opened socket ${state.ip} (${request.connection.remoteAddress}) for Session ${session.id}`);
-		// Event handlers
-		socket.on('message', function(event) {
-			session._messageHandler(event);
-		});
-		socket.on('close',(event) => {
-			session.logger.log(`Closed socket ${state.ip} (${request.connection.remoteAddress}) for Session ${session.id}`);
-			session.connecting = false;
-			session.connected = false;
-			session.synced = false;
-			// Close the WikiDoc session when disconnected
-			wikiDoc.emit('close',[session,event]);
-			session.emit('disconnected', [{
-				status: "disconnected",
-				event: event 
-			},session]);
-		});
-
-		session.emit('connected', [{status: "connected"},session]);
+WebSocketServer.prototype.handleWSConnection = function(ws,request,state) {
+	if(state) {
+		setupWSConnection(ws,request);
 	} else {
 		$tw.utils.log(`ws-server: Unauthorized Upgrade GET ${$tw.boot.origin+request.url}`);
-		socket.close(4023, `Invalid`);
+		ws.close(4023, `Invalid`);
 		return;
 	}
 }

@@ -12155,9 +12155,13 @@
      */
     constructor (serverUrl, roomname, doc, { connect = true, awareness = new Awareness(doc), params = {}, WebSocketPolyfill = WebSocket, resyncInterval = -1 } = {}) {
       super();
-      // ensure that url is always ends with /
+      // ensure that url is always ends with /, then remove it
       while (serverUrl[serverUrl.length - 1] === '/') {
         serverUrl = serverUrl.slice(0, serverUrl.length - 1);
+      }
+      // ensure that roomname is always starts with /, then remove it
+      while (roomname[0] === '/') {
+        roomname = roomname.slice(1, roomname.length);
       }
       const encodedParams = encodeQueryParams(params);
       this.bcChannel = serverUrl + '/' + roomname;
@@ -17671,60 +17675,63 @@
   /* eslint-env browser */
 
   window.addEventListener('load', () => {
-    // Initialize & sync the doc and providers
-    const wikiDoc = new Doc($tw.y.uuid);
-    wikiDoc.gc = $tw.y.gcEnabled;
-    wikiDoc.name = $tw.y.uuid;
-    $tw.y.wikiDoc = wikiDoc;
+      // Initialize & sync the doc and providers
+      const wikiDoc = new Doc($tw.y.uuid);
+      wikiDoc.gc = $tw.y.gcEnabled;
+      wikiDoc.name = $tw.y.uuid;
+      $tw.y.wikiDoc = wikiDoc;
 
-    const idb = new IndexeddbPersistence(wikiDoc.name,wikiDoc);
-    /** 
-     * @type {{bindState: function(string,WikiDoc):void, writeState:function(string,WikiDoc):Promise<any>, provider: any}|null}
-     */
-    $tw.y.persistence = {
-        provider: idb,
-        setKey: async (key,value) => {
+      const idb = new IndexeddbPersistence(wikiDoc.name,wikiDoc);
+      /** 
+       * @type {{bindState: function(string,WikiDoc):void, writeState:function(string,WikiDoc):Promise<any>, provider: any}|null}
+       */
+      $tw.y.persistence = {
+          provider: idb,
+          setKey: async (key,value) => {
 
-        },
-        getKey: async (key) => {
+          },
+          getKey: async (key) => {
 
-        },
-        deleteKey: async (key) => {
+          },
+          deleteKey: async (key) => {
 
-        }
-    };
-    $tw.y.persistence.provider.on('synced',() => {
-        // Connect the wssession
-        let host = new URL($tw.y.host);
-        host.protocol = host.protocol.replace('http', 'ws');
+          }
+      };
+      $tw.y.persistence.provider.once('synced',() => {
+          // Connect the wssession
+          let host = new URL($tw.y.host);
+          host.protocol = host.protocol.replace('http', 'ws');
 
-        let serverUrl = host.origin, roomName = host.pathName, options = {
-            connect: true,
-            params: {"wiki": $tw.y.uuid}
-        };
-        
-        $tw.y.session = new WebsocketProvider(serverUrl,roomName,wikiDoc,options);
-        $tw.y.session.on('synced',() => {
+          let serverUrl = host.origin, roomName = $tw.y.uuid, options = {
+              connect: true,
+              params: {"wiki": $tw.y.uuid}
+          };
+      
+          $tw.y.session = new WebsocketProvider(serverUrl,roomName,wikiDoc,options);
+          $tw.y.session.once('synced',() => {
 
-            $tw.y.binding = new TiddlywikiBinding(wikiDoc,$tw,$tw.y.session.awareness);
+              $tw.y.binding = new TiddlywikiBinding(wikiDoc,$tw,$tw.y.session.awareness);
 
-            $tw.y.session.username = "Test User";
-            $tw.y.session["read_only"] = false;
-            $tw.y.session.anonymous = false;
+              $tw.y.session.username = "Test User";
+              $tw.y.session["read_only"] = false;
+              $tw.y.session.anonymous = false;
 
-            /*
-            // Define user name and user name?
-            // Check the quill-cursors package on how to change the way cursors are rendered
-            $tw.y.session.awareness.setLocalStateField('user', {
-                name: 'Typing Jimmy',
-                color: 'blue'
-            })
-            */
+              /*
+              // Define user name and user name?
+              // Check the quill-cursors package on how to change the way cursors are rendered
+              $tw.y.session.awareness.setLocalStateField('user', {
+                  name: 'Typing Jimmy',
+                  color: 'blue'
+              })
+              */
 
-            // On session sync
-            $tw.boot.suppressBoot && $tw.boot.boot();
-        });
-    });
+              // Preload the tiddlers from the wikiDoc
+              $tw.preloadTiddlers.push(...wikiDoc.getArray("tiddlers").toJSON());
+
+              // On session sync
+              $tw.boot.suppressBoot && $tw.boot.boot();
+          });
+      });
   });
 
 })();

@@ -17,13 +17,6 @@ exports.platforms = ["node"];
 exports.before = ["startup"];
 exports.synchronous = false;
 
-// disable gc when using snapshots!
-$tw.y = {
-    binding: null,
-    uuid: null,
-    wikiDoc: null
-}
-
 const STATUS_UUID_TIDDLER = "$:/status/UUID";
 
 exports.startup = async function(callback) {
@@ -32,12 +25,12 @@ exports.startup = async function(callback) {
 
     const getUUID = function() {
         let key =  null
-        if($tw.boot.wikiInfo['yjs-uuid']) {
-            key = $tw.boot.wikiInfo['yjs-uuid']
+        if($tw.boot.wikiInfo['uuid']) {
+            key = $tw.boot.wikiInfo['uuid']
         }
-        if(!key || !uuid.validate(uuid) || key == uuid.NIL) {
+        if(!key || !uuid.validate(key) || key == uuid.NIL) {
             key = uuid.v4()
-            $tw.boot.wikiInfo['yjs-uuid'] = key
+            $tw.boot.wikiInfo['uuid'] = key
             // Save the tiddlywiki.info file
             const fs = require("fs");
             fs.writeFileSync(path.resolve($tw.boot.wikiPath,$tw.config.wikiInfo),JSON.stringify($tw.boot.wikiInfo,null,$tw.config.preferences.jsonSpaces),"utf8")
@@ -49,8 +42,12 @@ exports.startup = async function(callback) {
         }))
         return key
     };
-    // uuid the wiki
-    $tw.y.uuid = getUUID();
+    // init on node
+    $tw.y = {
+        binding: null,
+        uuid: getUUID(),
+        wikiDoc: null
+    }
     
     // disable gc when using snapshots!
     process.env.GC = $tw.wiki.getTiddlerText("$:/config/yjs/gcEnabled","yes") == "yes";
@@ -58,10 +55,10 @@ exports.startup = async function(callback) {
     process.env.YPERSISTENCE = path.resolve($tw.boot.wikiPath,"./leveldb/"+$tw.y.uuid);
     const WSUtils = require('y-websocket/bin/utils');
     const TiddlywikiBinding = require('y-tiddlywiki').TiddlywikiBinding;
-    
     // Initialize & sync the doc and providers, bind to the $tw instance
-    $tw.y.wikiDoc = await WSUtils.getYDoc($tw.y.uuid);
-    $tw.y.binding = new TiddlywikiBinding($tw.y.wikiDoc,$tw,null);
-
-    callback(null) 
+    $tw.y.wikiDoc = WSUtils.getYDoc($tw.y.uuid);
+    $tw.y.wikiDoc.on('load',() => {
+        $tw.y.binding = new TiddlywikiBinding($tw.y.wikiDoc,$tw,null);
+        callback(null) 
+    });
 };

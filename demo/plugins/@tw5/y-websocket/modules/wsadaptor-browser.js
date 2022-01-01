@@ -49,7 +49,7 @@ WebsocketAdaptor.prototype.setLoggerSaveBuffer = function(loggerForSaving) {
 };
 
 WebsocketAdaptor.prototype.isReady = function() {
-	return this.session && this.session.isReady();
+	return $tw.y.session && $tw.y.session.synced;
 }
 
 WebsocketAdaptor.prototype.getTiddlerInfo = function(tiddler) {
@@ -77,11 +77,13 @@ Get the current status of the user
 */
 WebsocketAdaptor.prototype.getStatus = function(callback) {
 	this.logger.log("Getting status");
+	let username = null;
 	// Get status
-	if($tw.y.session.isReady()) {
+	if(this.isReady()) {
 		this.hasStatus = true;
-		this.logger.log("Status:",$tw.y.session.toJSON());
+		this.logger.log("Status:",JSON.stringify($tw.y.session,null,$tw.config.preferences.jsonSpaces));
 		// Check if we're logged in
+		username = $tw.y.session.username;
 		this.isLoggedIn = !!$tw.y.session.username;
 		this.isReadOnly = !!$tw.y.session["read_only"];
 		this.isAnonymous = !!$tw.y.session.anonymous;
@@ -89,7 +91,7 @@ WebsocketAdaptor.prototype.getStatus = function(callback) {
 	// Invoke the callback if present
 	if(callback) {
 		// Invoke the callback if present
-		return callback(null,this.isLoggedIn,$tw.y.session.username,this.isReadOnly,this.isAnonymous);
+		return callback(null,this.isLoggedIn,username,this.isReadOnly,this.isAnonymous);
 	}	
 };
 

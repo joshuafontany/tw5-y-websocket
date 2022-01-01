@@ -35,7 +35,7 @@ Boot code that is transcluded by a rawmarkup startup tiddler
             let host = new URL($tw.y.host);
             host.protocol = url.protocol.replace('http', 'ws');
 
-            let serverUrl = host.origin, roomName = host.pathName, options = {
+            let serverUrl = host.origin, roomName = $tw.y.uuid, options = {
                 connect: true,
                 params: {"wiki": $tw.y.uuid}
             };
@@ -59,7 +59,7 @@ Boot code that is transcluded by a rawmarkup startup tiddler
                 */
 
                 // On session sync
-                $tw.boot.suppressBoot && $tw.boot.boot($tw)
+                $tw.boot.suppressBoot && $tw.boot.boot()
             })
         })
       })

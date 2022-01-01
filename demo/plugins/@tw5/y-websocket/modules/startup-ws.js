@@ -18,11 +18,9 @@ exports.after = ["startup-y"];
 exports.before = ["startup"];
 exports.synchronous = true;
 
-const WebSocketServer = require('./wsserver.js').WebSocketServer;
-
-const CONFIG_HOST_TIDDLER = "$:/config/tiddlyweb/host";
-
 exports.startup = function () {
+	const WebSocketServer = require('./wsserver.js').WebSocketServer;
+	const CONFIG_HOST_TIDDLER = "$:/config/tiddlyweb/host";
 	$tw.hooks.addHook("th-server-command-post-start",function(simpleServer,nodeServer,name) {
 		// Setup the config tiddler. For backwards compatibility we use $:/config/tiddlyweb/host
 		let config = $tw.wiki.getTiddler(CONFIG_HOST_TIDDLER),
@@ -31,7 +29,7 @@ exports.startup = function () {
 			text: `${$tw.boot.origin + $tw.boot.pathPrefix}/`
 		};
 		$tw.wiki.addTiddler(new $tw.Tiddler(config,newFields));
-		
+
 		$tw.y.binding.updateWikiDoc($tw);
 
 		// Set up the the WebSocketServer
