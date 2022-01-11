@@ -17,11 +17,12 @@ exports.platforms = ["node"];
 exports.before = ["startup"];
 exports.synchronous = false;
 
-const STATUS_UUID_TIDDLER = "$:/status/UUID";
-
-exports.startup = async function(callback) {
+exports.startup = async function(callback) {debugger;
     const path = require("path");
     const uuid = require('uuid');
+    const TiddlywikiBinding = require('y-tiddlywiki').TiddlywikiBinding;
+    const CONFIG_GC_ENABLED = "$:/config/yjs/gcEnabled";
+    const STATUS_UUID_TIDDLER = "$:/status/UUID";
 
     const getUUID = function() {
         let key =  null
@@ -42,23 +43,30 @@ exports.startup = async function(callback) {
         }))
         return key
     };
-    // init on node
-    $tw.y = {
-        binding: null,
-        uuid: getUUID(),
-        wikiDoc: null
-    }
-    
+
+    const key = getUUID();
+
     // disable gc when using snapshots!
-    process.env.GC = $tw.wiki.getTiddlerText("$:/config/yjs/gcEnabled","yes") == "yes";
+    process.env.GC = $tw.wiki.getTiddlerText(CONFIG_GC_ENABLED,"yes") == "yes";
     // Persistence
-    process.env.YPERSISTENCE = path.resolve($tw.boot.wikiPath,"./leveldb/"+$tw.y.uuid);
-    const WSUtils = require('y-websocket/bin/utils');
-    const TiddlywikiBinding = require('y-tiddlywiki').TiddlywikiBinding;
+    process.env.YPERSISTENCE = path.resolve($tw.boot.wikiPath,"./leveldb/"+key);
+    // init on node
+    $tw.y = require('y-websocket/bin/utils');
+    $tw.y.uuid = key;
+    // init authorization function
+    let authorize = (doc, conn, token) => {
+        if (doc.name !== token) {
+           conn.authStatus = "403 Forbidden" //Auto-terminates the websocket provider
+           return false
+        }
+        conn.isReadyOnly = typeof conn.authStatus
+        return true
+      }
+    $tw.y.setAuthorize(authorize)
     // Initialize & sync the doc and providers, bind to the $tw instance
-    $tw.y.wikiDoc = WSUtils.getYDoc($tw.y.uuid);
-    $tw.y.wikiDoc.on('load',() => {
-        $tw.y.binding = new TiddlywikiBinding($tw.y.wikiDoc,$tw,null);
+    $tw.y.wikiDoc = $tw.y.getYDoc($tw.y.uuid);
+    $tw.y.wikiDoc.once('load',() => {
+        $tw.y.binding = new TiddlywikiBinding($tw.y.wikiDoc,$tw,$tw.y.wikiDoc.awareness);
         callback(null) 
     });
 };
