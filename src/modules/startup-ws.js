@@ -58,12 +58,13 @@ exports.startup = function () {
 						tiddlywiki_version: $tw.version
 					});
 					$tw.wsServer.handleUpgrade(request, socket, head, function (ws) {
-						$tw.wsServer.emit('connection', ws, request, {docName: state.boot.wikiInfo['uuid'], authenticate: true, authStatus: status});
+						$tw.wsServer.emit('connection', ws, request, {docName: state.boot.wikiInfo['uuid'], authorize: true, authStatus: status});
 					});
 				} else {
 					$tw.utils.log(`ws-server: Unauthorized Upgrade GET ${$tw.boot.origin+request.url}`);
-					ws.close(4023, `Invalid`);
-					return;
+					$tw.wsServer.handleUpgrade(request, socket, head, function (ws) {
+						$tw.wsServer.emit('connection', ws, request, {docName: state.urlInfo.searchParams.get("wiki"), authorize: true, authStatus: "401 Unauthorized"});
+					});
 				}
 			}
 		});
