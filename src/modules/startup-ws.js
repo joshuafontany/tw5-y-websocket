@@ -21,6 +21,7 @@ exports.synchronous = true;
 exports.startup = function () {
 	const WebSocketServer = require('./wsserver.js').WebSocketServer;
 	const CONFIG_HOST_TIDDLER = "$:/config/tiddlyweb/host";
+
 	$tw.hooks.addHook("th-server-command-post-start",function(simpleServer,nodeServer,name) {
 		// Setup the config tiddler. For backwards compatibility we use $:/config/tiddlyweb/host
 		let config = $tw.wiki.getTiddler(CONFIG_HOST_TIDDLER),
@@ -30,6 +31,7 @@ exports.startup = function () {
 		};
 		$tw.wiki.addTiddler(new $tw.Tiddler(config,newFields));
 
+		// Compare all loaded tiddlers with the current wikiDoc tiddlers
 		$tw.y.binding.updateWikiDoc($tw);
 
 		// Set up the the WebSocketServer
@@ -48,9 +50,21 @@ exports.startup = function () {
 				options.pathPrefix = $tw.boot.pathPrefix;
 				options.server = simpleServer;
 				let state = $tw.wsServer.verifyUpgrade(request, options);
-				$tw.wsServer.handleUpgrade(request, socket, head, function (ws) {
-					$tw.wsServer.emit('connection', ws, request, state);
-				});
+				if(state) {
+					let status = JSON.stringify({
+						username: state.authenticatedUsername || state.server.get("anon-username") || "",
+						anonymous: !state.authenticatedUsername,
+						read_only: !state.server.isAuthorized("writers",state.authenticatedUsername),
+						tiddlywiki_version: $tw.version
+					});
+					$tw.wsServer.handleUpgrade(request, socket, head, function (ws) {
+						$tw.wsServer.emit('connection', ws, request, {docName: state.boot.wikiInfo['uuid'], authenticate: true, authStatus: status});
+					});
+				} else {
+					$tw.utils.log(`ws-server: Unauthorized Upgrade GET ${$tw.boot.origin+request.url}`);
+					ws.close(4023, `Invalid`);
+					return;
+				}
 			}
 		});
 		$tw.utils.log(`Multiplayer provided by @tw5/y-websocket`);

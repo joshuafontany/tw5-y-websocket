@@ -29,7 +29,7 @@ function WebSocketServer(options) {
 	// Set the event handlers
 	this.on('listening',this.serverOpened);
 	this.on('close',this.serverClosed);
-	this.on('connection',this.handleWSConnection);
+	this.on('connection',setupWSConnection);
 }
 
 WebSocketServer.prototype = Object.create(WS.Server.prototype);
@@ -81,25 +81,6 @@ WebSocketServer.prototype.verifyUpgrade = function(request,options) {
 	}
 	return state.urlInfo.searchParams.get("wiki") == state.boot.wikiInfo['uuid'] && state
 };
-
-/**
- * @param {WebSocket} ws
- * @param {UPGRADE} request
- * @param {$tw server state} state
-	This function handles incomming connections from client sessions.
-	It can support multiple client sessions, each with a unique sessionId.
-	Session objects are defined in $:/plugins/@tw5/y-websocket/y-wssession.js
-	OUTDATED
-*/
-WebSocketServer.prototype.handleWSConnection = function(ws,request,state) {
-	if(state) {
-		setupWSConnection(ws,request);
-	} else {
-		$tw.utils.log(`ws-server: Unauthorized Upgrade GET ${$tw.boot.origin+request.url}`);
-		ws.close(4023, `Invalid`);
-		return;
-	}
-}
 
 /*
 	User methods

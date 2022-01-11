@@ -11581,7 +11581,7 @@
    * When the server receives SyncStep1, it should reply with SyncStep2 immediately followed by SyncStep1. The client replies
    * with SyncStep2 when it receives SyncStep1. Optionally the server may send a SyncDone after it received SyncStep2, so the
    * client knows that the sync is finished.  There are two reasons for this more elaborated sync model: 1. This protocol can
-   * easily be implemented on top of http and websockets. 2. The server shoul only reply to requests, and not initiate them.
+   * easily be implemented on top of http and websockets. 2. The server should only reply to requests, and not initiate them.
    * Therefore it is necesarry that the client initiates the sync.
    *
    * Construction of a message:
@@ -11675,10 +11675,10 @@
         readSyncStep1(decoder, encoder, doc);
         break
       case messageYjsSyncStep2:
-        readSyncStep2(decoder, doc, transactionOrigin);
+        if (!transactionOrigin.isReadOnly) readSyncStep2(decoder, doc, transactionOrigin);
         break
       case messageYjsUpdate:
-        readUpdate(decoder, doc, transactionOrigin);
+        if (!transactionOrigin.isReadOnly) readUpdate(decoder, doc, transactionOrigin);
         break
       default:
         throw new Error('Unknown message type')
@@ -11687,6 +11687,17 @@
   };
 
   const messagePermissionDenied = 0;
+  const messagePermissionApproved = 1;
+  const messagePermissionRequested = 2;
+
+  /**
+   * @param {encoding.Encoder} encoder
+   * @param {string} token // string or string encoded json token
+   */
+  const writePermissionRequested = (encoder, token) => {
+    writeVarUint(encoder, messagePermissionRequested);
+    writeVarString(encoder, token);
+  };
 
   /**
    * @callback PermissionDeniedHandler
@@ -11695,14 +11706,30 @@
    */
 
   /**
+   * @callback PermissionApprovedHandler
+   * @param {any} y
+   * @param {string} reason
+   */
+
+  /**
+   * @callback PermissionRequestedHandler
+   * @param {any} y
+   * @param {WebSocket} conn
+   * @param {string} token
+   * @returns {boolean} // authorized, required
+   */
+
+  /**
    *
    * @param {decoding.Decoder} decoder
    * @param {Y.Doc} y
    * @param {PermissionDeniedHandler} permissionDeniedHandler
+   * @param {PermissionApprovedHandler} permissionApprovedHandler
    */
-  const readAuthMessage = (decoder, y, permissionDeniedHandler) => {
+  const readAuthMessage = (decoder, y, permissionDeniedHandler, permissionApprovedHandler) => {
     switch (readVarUint(decoder)) {
       case messagePermissionDenied: permissionDeniedHandler(y, readVarString(decoder));
+      case messagePermissionApproved: permissionApprovedHandler(y, readVarString(decoder));
     }
   };
 
@@ -12013,7 +12040,7 @@
   };
 
   messageHandlers[messageAuth] = (encoder, decoder, provider, emitSynced, messageType) => {
-    readAuthMessage(decoder, provider.doc, permissionDeniedHandler);
+    readAuthMessage(decoder, provider.doc, permissionDeniedHandler, permissionApprovedHandler);
   };
 
   const reconnectTimeoutBase = 1200;
@@ -12025,7 +12052,46 @@
    * @param {WebsocketProvider} provider
    * @param {string} reason
    */
-  const permissionDeniedHandler = (provider, reason) => console.warn(`Permission denied to access ${provider.url}.\n${reason}`);
+  const permissionDeniedHandler = (provider, reason) => {
+    let status = `Permission denied to access ${provider.url}.\n${reason}`;
+    console.warn(status);
+    provider.authStatus = status;
+    provider.emit('auth', [status]);
+    if(reason == "403 Forbidden") {
+      console.warn(`\tThe current user does not have permission to access ${provider.url}.`);
+      provider.destroy();
+    }
+  };
+
+  /**
+   * @param {WebsocketProvider} provider
+   * @param {string} statusString
+   */
+  const permissionApprovedHandler = (provider, statusString) => {
+    try {
+      const status = JSON.parse(statusString);
+      provider.authStatus = status;
+    } catch (err) {
+      const status = statusString;
+      provider.authStatus = status;   
+    }
+    if (provider.wsconnected && !provider.synced) {
+      // always send sync step 1 when authed
+      const encoder = createEncoder();
+      writeVarUint(encoder, messageSync);
+      writeSyncStep1(encoder, provider.doc)
+      /** @type {WebSocket} */ (provider.ws).send(toUint8Array(encoder));
+      // broadcast local awareness state
+      if (provider.awareness.getLocalState() !== null) {
+        const encoderAwarenessState = createEncoder();
+        writeVarUint(encoderAwarenessState, messageAwareness);
+        writeVarUint8Array(encoderAwarenessState, encodeAwarenessUpdate(provider.awareness, [provider.doc.clientID]));
+        /** @type {WebSocket} */ (provider.ws).send(toUint8Array(encoderAwarenessState));
+      }
+    }
+
+    provider.emit('authorize', [provider.authStatus]);
+  };
 
   /**
    * @param {WebsocketProvider} provider
@@ -12093,17 +12159,25 @@
         provider.emit('status', [{
           status: 'connected'
         }]);
-        // always send sync step 1 when connected
-        const encoder = createEncoder();
-        writeVarUint(encoder, messageSync);
-        writeSyncStep1(encoder, provider.doc);
-        websocket.send(toUint8Array(encoder));
-        // broadcast local awareness state
-        if (provider.awareness.getLocalState() !== null) {
-          const encoderAwarenessState = createEncoder();
-          writeVarUint(encoderAwarenessState, messageAwareness);
-          writeVarUint8Array(encoderAwarenessState, encodeAwarenessUpdate(provider.awareness, [provider.doc.clientID]));
-          websocket.send(toUint8Array(encoderAwarenessState));
+        if (provider.shouldAuth) {
+          // ask for auth permissions
+          const encoder = createEncoder();
+          writeVarUint(encoder, messageAuth);
+          writePermissionRequested(encoder, provider.authToken);
+          websocket.send(toUint8Array(encoder));
+        } else {
+          // always send sync step 1 when connected
+          const encoder = createEncoder();
+          writeVarUint(encoder, messageSync);
+          writeSyncStep1(encoder, provider.doc);
+          websocket.send(toUint8Array(encoder));
+          // broadcast local awareness state
+          if (provider.awareness.getLocalState() !== null) {
+            const encoderAwarenessState = createEncoder();
+            writeVarUint(encoderAwarenessState, messageAwareness);
+            writeVarUint8Array(encoderAwarenessState, encodeAwarenessUpdate(provider.awareness, [provider.doc.clientID]));
+            websocket.send(toUint8Array(encoderAwarenessState));
+          }
         }
       };
 
@@ -12147,13 +12221,15 @@
      * @param {string} roomname
      * @param {Y.Doc} doc
      * @param {object} [opts]
+     * @param {boolean} [opts.auth]
+     * @param {string} [opts.authToken]
      * @param {boolean} [opts.connect]
      * @param {awarenessProtocol.Awareness} [opts.awareness]
      * @param {Object<string,string>} [opts.params]
      * @param {typeof WebSocket} [opts.WebSocketPolyfill] Optionall provide a WebSocket polyfill
      * @param {number} [opts.resyncInterval] Request server state every `resyncInterval` milliseconds
      */
-    constructor (serverUrl, roomname, doc, { connect = true, awareness = new Awareness(doc), params = {}, WebSocketPolyfill = WebSocket, resyncInterval = -1 } = {}) {
+    constructor (serverUrl, roomname, doc, { auth = false, authToken = "", connect = true, awareness = new Awareness(doc), params = {}, WebSocketPolyfill = WebSocket, resyncInterval = -1 } = {}) {
       super();
       // ensure that url is always ends with /, then remove it
       while (serverUrl[serverUrl.length - 1] === '/') {
@@ -12161,7 +12237,7 @@
       }
       // ensure that roomname is always starts with /, then remove it
       while (roomname[0] === '/') {
-        roomname = roomname.slice(1, roomname.length);
+        roomname = roomname.slice(1);
       }
       const encodedParams = encodeQueryParams(params);
       this.bcChannel = serverUrl + '/' + roomname;
@@ -12185,6 +12261,13 @@
        */
       this.ws = null;
       this.wsLastMessageReceived = 0;
+      /**
+       * Whether to connect to other peers or not
+       * @type {boolean}
+       */
+      this.shouldAuth = auth;
+      this.authStatus = null;
+      this.authToken = authToken;
       /**
        * Whether to connect to other peers or not
        * @type {boolean}
