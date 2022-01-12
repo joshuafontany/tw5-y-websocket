@@ -17,10 +17,10 @@ exports.platforms = ["node"];
 exports.before = ["startup"];
 exports.synchronous = false;
 
-exports.startup = async function(callback) {debugger;
+exports.startup = async function(callback) {
     const path = require("path");
     const uuid = require('uuid');
-    const TiddlywikiBinding = require('y-tiddlywiki').TiddlywikiBinding;
+    const TiddlywikiBinding = require('$:/library/y-tiddlywiki-core.js').TiddlywikiBinding;
     const CONFIG_GC_ENABLED = "$:/config/yjs/gcEnabled";
     const STATUS_UUID_TIDDLER = "$:/status/UUID";
 
@@ -51,21 +51,8 @@ exports.startup = async function(callback) {debugger;
     // Persistence
     process.env.YPERSISTENCE = path.resolve($tw.boot.wikiPath,"./leveldb/"+key);
     // init on node
-    $tw.y = require('y-websocket/bin/utils');
+    $tw.y = require('$:/library/y-tiddlywiki-core.js').WSUtils;
     $tw.y.uuid = key;
-    // init authorization function
-    let authorize = (doc, token) => {
-        // This example sets conn.isReadOnly to false.
-        conn.isReadyOnly = false
-        // You can set conn.authStatus to a denied reason and return false
-        if (doc.name !== token) {
-           conn.authStatus = "403 Forbidden" //Auto-terminates the websocket provider
-           return false
-        }
-        // The client connection will receive the existing conn.authStatus after the function is called.
-        return true
-      }
-    $tw.y.setAuthorize(authorize)
     // Initialize & sync the doc and providers, bind to the $tw instance
     $tw.y.wikiDoc = $tw.y.getYDoc($tw.y.uuid);
     $tw.y.wikiDoc.once('load',() => {

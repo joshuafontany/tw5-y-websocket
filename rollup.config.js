@@ -50,11 +50,11 @@ const debugResolve = {
 }
 
 export default [{
-  input: './demo/y-tiddlywiki-core.js',
+  input: './rollup/y-tiddlywiki-client.js',
   output: [{
-    name: 'y-tiddlywiki-core.js',
-    file: 'demo/editions/multiplayer/files/y-tiddlywiki-core.js',
-    format: 'iife',
+    name: 'YClient',
+    file: 'src/modules/y-tiddlywiki-client.js',
+    format: 'umd',
     sourcemap: true
   }],
   plugins: [
@@ -63,6 +63,26 @@ export default [{
     nodeResolve({
       mainFields: ['module', 'browser', 'main']
     }),
-    commonjs()
+    commonjs({
+      include: 'node_modules/**'
+    })
+  ]
+},{
+  input: './rollup/y-tiddlywiki-server.js',
+  output: [{
+    name: 'YServer',
+    file: 'src/modules/y-tiddlywiki-server.cjs',
+    format: 'cjs',
+    sourcemap: true
+  }],
+  plugins: [
+    //ytiddlywikiResolve,
+    debugResolve,
+    nodeResolve({
+      mainFields: ['module', 'browser', 'main']
+    }),
+    commonjs({
+      include: 'node_modules/**'
+    })
   ]
 }]

@@ -34,6 +34,23 @@ exports.startup = function () {
 		// Compare all loaded tiddlers with the current wikiDoc tiddlers
 		$tw.y.binding.updateWikiDoc($tw);
 
+		// Init authorization function
+		const authorize = (doc, conn, token) => {
+			if (doc.name !== token) {
+				conn.authStatus = "403 Forbidden" //Auto-terminates the websocket provider
+				return false
+			}
+			try {
+				let json = JSON.parse(conn.authStatus)
+				conn.isReadyOnly = json["read_only"]
+				return true
+			} catch (err) {
+				console.warn(`Error: unable to read authStatus on ws connection`)
+				return false
+			}
+		}
+		$tw.y.setAuthorize(authorize);
+
 		// Set up the the WebSocketServer
 		$tw.wsServer = new WebSocketServer({
 			clientTracking: false,
@@ -51,7 +68,7 @@ exports.startup = function () {
 				options.server = simpleServer;
 				let state = $tw.wsServer.verifyUpgrade(request, options);
 				if(state) {
-					let status = JSON.stringify({
+					const status = JSON.stringify({
 						username: state.authenticatedUsername || state.server.get("anon-username") || "",
 						anonymous: !state.authenticatedUsername,
 						read_only: !state.server.isAuthorized("writers",state.authenticatedUsername),
@@ -62,8 +79,9 @@ exports.startup = function () {
 					});
 				} else {
 					$tw.utils.log(`ws-server: Unauthorized Upgrade GET ${$tw.boot.origin+request.url}`);
+					const status = "401 Unauthorized";
 					$tw.wsServer.handleUpgrade(request, socket, head, function (ws) {
-						$tw.wsServer.emit('connection', ws, request, {docName: state.urlInfo.searchParams.get("wiki"), authorize: true, authStatus: "401 Unauthorized"});
+						$tw.wsServer.emit('connection', ws, request, {docName: state.urlInfo.searchParams.get("wiki"), authorize: true, authStatus: status});
 					});
 				}
 			}
