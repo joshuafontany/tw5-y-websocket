@@ -1,6 +1,0 @@
-title: $:/core/save/yjs
-
-\define saveTiddlerFilter()
-[[$:/plugins/@tw5/y-websocket]] [[$:/status/UUID]]
-\end
-{{$:/core/templates/tiddlywiki5.html}}

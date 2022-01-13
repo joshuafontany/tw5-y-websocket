@@ -26,5 +26,4 @@ $tw.y = {
     wikiDoc: null 
 }
 </script>
-<script src="./files/y-tiddlywiki-core.js" onerror="console.log('Cannot load y-tiddlywiki-core.js');$tw.boot.suppressBoot = false;"></script>
 <script>`{{$:/plugins/@tw5/y-websocket/rawmarkup-boot.js}}`</script>`

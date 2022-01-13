@@ -1,8 +1,5 @@
-(function (global, factory) {
-  typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
-  typeof define === 'function' && define.amd ? define(['exports'], factory) :
-  (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.YClient = {}));
-})(this, (function (exports) { 'use strict';
+var YCore = (function (exports) {
+  'use strict';
 
   /**
    * Utility module to work with key-value stores.
@@ -18068,7 +18065,7 @@
   };
 
   messageHandlers[messageAuth] = (encoder, decoder, provider, emitSynced, messageType) => {
-    readAuthMessage(decoder, provider.doc, permissionDeniedHandler, permissionApprovedHandler);
+    readAuthMessage(decoder, provider, permissionDeniedHandler, permissionApprovedHandler);
   };
 
   const reconnectTimeoutBase = 1200;
@@ -18102,18 +18099,18 @@
       const status = statusString;
       provider.authStatus = status;   
     }
-    if (provider.wsconnected && !provider.synced) {
+    if (provider.ws && provider.wsconnected && !provider.synced) {
       // always send sync step 1 when authed
       const encoder = createEncoder();
       writeVarUint(encoder, messageSync);
-      writeSyncStep1(encoder, provider.doc)
-      /** @type {WebSocket} */ (provider.ws).send(toUint8Array(encoder));
+      writeSyncStep1(encoder, provider.doc);
+      provider.ws.send(toUint8Array(encoder));
       // broadcast local awareness state
       if (provider.awareness.getLocalState() !== null) {
         const encoderAwarenessState = createEncoder();
         writeVarUint(encoderAwarenessState, messageAwareness);
         writeVarUint8Array(encoderAwarenessState, encodeAwarenessUpdate(provider.awareness, [provider.doc.clientID]));
-        /** @type {WebSocket} */ (provider.ws).send(toUint8Array(encoderAwarenessState));
+        provider.ws.send(toUint8Array(encoderAwarenessState));
       }
     }
     provider.emit('status', [{status: "approved"}]);
@@ -18469,5 +18466,7 @@
 
   Object.defineProperty(exports, '__esModule', { value: true });
 
-}));
-//# sourceMappingURL=y-tiddlywiki-client.js.map
+  return exports;
+
+})({});
+//# sourceMappingURL=y-tiddlywiki-core.js.map

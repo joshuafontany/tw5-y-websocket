@@ -21,6 +21,7 @@ exports.synchronous = true;
 exports.startup = function () {
 	const WebSocketServer = require('./wsserver.js').WebSocketServer;
 	const CONFIG_HOST_TIDDLER = "$:/config/tiddlyweb/host";
+	const BOOT_Y_CORE = "$:/boot/y-tiddlywiki-core.js";
 
 	$tw.hooks.addHook("th-server-command-post-start",function(simpleServer,nodeServer,name) {
 		// Setup the config tiddler. For backwards compatibility we use $:/config/tiddlyweb/host
@@ -31,6 +32,9 @@ exports.startup = function () {
 		};
 		$tw.wiki.addTiddler(new $tw.Tiddler(config,newFields));
 
+		// Unpack the BOOT_Y_CORE tiddler from a shadow to a regular tiddler, so it can be included in the html template
+		$tw.wiki.addTiddler($tw.wiki.getTiddler(BOOT_Y_CORE));
+
 		// Compare all loaded tiddlers with the current wikiDoc tiddlers
 		$tw.y.binding.updateWikiDoc($tw);
 
@@ -38,15 +42,15 @@ exports.startup = function () {
 		const authorize = (doc, conn, token) => {
 			if (doc.name !== token) {
 				conn.authStatus = "403 Forbidden" //Auto-terminates the websocket provider
-				return false
+				conn.authorized = false
 			}
 			try {
 				let json = JSON.parse(conn.authStatus)
 				conn.isReadyOnly = json["read_only"]
-				return true
+				conn.authorized = true
 			} catch (err) {
 				console.warn(`Error: unable to read authStatus on ws connection`)
-				return false
+				conn.authorized = false
 			}
 		}
 		$tw.y.setAuthorize(authorize);

@@ -11,7 +11,7 @@ module-type: library
 "use strict";
 
 if($tw.node) {
-	const { setupWSConnection } = require('y-websocket/bin/utils');
+	const setupWSConnection = $tw.y.setupWSConnection;
 	const { uniqueNamesGenerator, adjectives, colors, animals, names } = require('unique-names-generator');
 	const URL = require('url').URL;
 	const WS = require('ws');

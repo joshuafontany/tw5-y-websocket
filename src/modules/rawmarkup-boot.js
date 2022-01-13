@@ -7,7 +7,7 @@ Boot code that is transcluded by a rawmarkup startup tiddler
 
 \*/
 (function() {
-    window.addEventListener('load', () => {
+    window.addEventListener('load', () => {debugger;
         // Initialize & sync the doc and providers
         const wikiDoc = new YCore.Y.Doc($tw.y.uuid)
         wikiDoc.gc = $tw.y.gcEnabled
@@ -36,7 +36,7 @@ Boot code that is transcluded by a rawmarkup startup tiddler
             host.protocol = host.protocol.replace('http', 'ws');
     
             let serverUrl = host.origin, roomName = host.pathname, options = {
-                authoize: true,
+                authorize: true,
                 authToken: $tw.y.uuid,
                 connect: true,
                 params: {"wiki": $tw.y.uuid}

@@ -20,7 +20,7 @@ exports.synchronous = false;
 exports.startup = async function(callback) {
     const path = require("path");
     const uuid = require('uuid');
-    const TiddlywikiBinding = require('$:/library/y-tiddlywiki-core.js').TiddlywikiBinding;
+    const TiddlywikiBinding = require('y-tiddlywiki').TiddlywikiBinding;
     const CONFIG_GC_ENABLED = "$:/config/yjs/gcEnabled";
     const STATUS_UUID_TIDDLER = "$:/status/UUID";
 
@@ -51,7 +51,7 @@ exports.startup = async function(callback) {
     // Persistence
     process.env.YPERSISTENCE = path.resolve($tw.boot.wikiPath,"./leveldb/"+key);
     // init on node
-    $tw.y = require('$:/library/y-tiddlywiki-core.js').WSUtils;
+    $tw.y = require('./wsutils.cjs');
     $tw.y.uuid = key;
     // Initialize & sync the doc and providers, bind to the $tw instance
     $tw.y.wikiDoc = $tw.y.getYDoc($tw.y.uuid);

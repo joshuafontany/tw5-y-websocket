@@ -11,9 +11,9 @@
     "dist": "rm -rf dist && rollup -c && npm run copy",
     "start": "npm run dist && npm run demo",
     "copy": "rm -rf demo/plugins/@tw5/y-websocket && cp -r src demo/plugins/@tw5/y-websocket",
-    "demo": "cross-env TIDDLYWIKI_PLUGIN_PATH=./demo/plugins node node_modules/tiddlywiki/tiddlywiki.js +plugins/@tw5/y-websocket +plugins/tiddlywiki/filesystem ./demo/editions/multiplayer --listen host=127.0.0.1 port=8080 'admin=(authenticated)' 'readers=(anon)' 'writers=(authenticated)' credentials=./settings/credentials.csv root-tiddler=$:/core/save/yjs required-plugins=$:/plugins/tiddlywiki/filesystem,$:/plugins/@tw5/y-websocket debug-level=none",
+    "demo": "cross-env TIDDLYWIKI_PLUGIN_PATH=./demo/plugins node node_modules/tiddlywiki/tiddlywiki.js +plugins/@tw5/y-websocket +plugins/tiddlywiki/filesystem ./demo/editions/multiplayer --listen host=127.0.0.1 port=8080 'admin=(authenticated)' 'readers=(anon)' 'writers=(authenticated)' credentials=./settings/credentials.csv root-tiddler=$:/core/save/empty required-plugins=$:/plugins/tiddlywiki/filesystem,$:/plugins/@tw5/y-websocket debug-level=none",
     "lint": "standard",
-    "debug": "cross-env TIDDLYWIKI_PLUGIN_PATH=./demo/plugins node --trace-warnings node_modules/tiddlywiki/tiddlywiki.js +plugins/@tw5/y-websocket +plugins/tiddlywiki/filesystem ./demo/editions/multiplayer npm--listen host=127.0.0.1 port=8080 'admin=(authenticated)' 'readers=(anon)' 'writers=(authenticated)' credentials=./settings/credentials.csv root-tiddler=$:/core/save/yjs required-plugins=$:/plugins/tiddlywiki/filesystem,$:/plugins/@tw5/y-websocket debug-level=full"
+    "debug": "cross-env TIDDLYWIKI_PLUGIN_PATH=./demo/plugins node --trace-warnings node_modules/tiddlywiki/tiddlywiki.js +plugins/@tw5/y-websocket +plugins/tiddlywiki/filesystem ./demo/editions/multiplayer npm--listen host=127.0.0.1 port=8080 'admin=(authenticated)' 'readers=(anon)' 'writers=(authenticated)' credentials=./settings/credentials.csv root-tiddler=$:/core/save/empty required-plugins=$:/plugins/tiddlywiki/filesystem,$:/plugins/@tw5/y-websocket debug-level=full"
   },
   "files": [
     "dist/*",
@@ -46,7 +46,8 @@
     "unique-names-generator": "^4.6.0",
     "uuid": "^8.3.2",
     "ws": "^6.2.1",
-    "y-leveldb": "^0.1.0"
+    "y-leveldb": "^0.1.0",
+    "y-tiddlywiki": "git+https://github.com/joshuafontany/y-tiddlywiki.git"
   },
   "peerDependencies": {
     "tiddlywiki": "^5.2.2",
@@ -59,10 +60,10 @@
     "rollup": "^2.59.0",
     "standard": "^12.0.1",
     "tiddlywiki": "git+https://github.com/joshuafontany/TiddlyWiki5.git#dev",
-    "yjs": "^13.5.18",
     "y-indexeddb": "^9.0.6",
     "y-protocols": "git+https://github.com/joshuafontany/y-protocols.git#tiddlywiki",
     "y-tiddlywiki": "git+https://github.com/joshuafontany/y-tiddlywiki.git",
-    "y-websocket": "git+https://github.com/joshuafontany/y-websocket.git#tiddlywiki"
+    "y-websocket": "git+https://github.com/joshuafontany/y-websocket.git#tiddlywiki",
+    "yjs": "^13.5.18"
   }
 }

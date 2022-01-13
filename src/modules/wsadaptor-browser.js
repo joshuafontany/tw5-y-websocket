@@ -81,12 +81,12 @@ WebsocketAdaptor.prototype.getStatus = function(callback) {
 	// Get status
 	if(this.isReady()) {
 		this.hasStatus = true;
-		this.logger.log("Status:",JSON.stringify($tw.y.session,null,$tw.config.preferences.jsonSpaces));
+		this.logger.log("Status:",JSON.stringify($tw.y.session.authStatus,null,$tw.config.preferences.jsonSpaces));
 		// Check if we're logged in
-		username = $tw.y.session.username;
-		this.isLoggedIn = !!$tw.y.session.username;
-		this.isReadOnly = !!$tw.y.session["read_only"];
-		this.isAnonymous = !!$tw.y.session.anonymous;
+		username = $tw.y.session.authStatus.username;
+		this.isLoggedIn = !!$tw.y.session.authStatus.username;
+		this.isReadOnly = !!$tw.y.session.authStatus["read_only"];
+		this.isAnonymous = !!$tw.y.session.authStatus.anonymous;
 	}
 	// Invoke the callback if present
 	if(callback) {

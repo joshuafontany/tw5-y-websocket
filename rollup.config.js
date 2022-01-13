@@ -5,6 +5,17 @@ import commonjs from '@rollup/plugin-commonjs'
 // This is only necessary if you want to test and make changes to several repositories.
 const localImports = process.env.LOCALIMPORTS
 
+const externalModules = new Set([
+  'yjs',
+  'y-protocols',
+  'lib0',
+  'lodash.debounce',
+  'fs-extra',
+  'y-leveldb',
+  'http',
+  'buffer'
+])
+
 const customModules = new Set([
   'y-websocket',
   'y-tiddlywiki'
@@ -50,37 +61,33 @@ const debugResolve = {
 }
 
 export default [{
-  input: './rollup/y-tiddlywiki-client.js',
+  input: './rollup/y-tiddlywiki-core.js',
   output: [{
-    name: 'YClient',
-    file: 'src/modules/y-tiddlywiki-client.js',
-    format: 'umd',
+    name: 'YCore',
+    file: 'src/modules/y-tiddlywiki-core.js',
+    format: 'iife',
     sourcemap: true
   }],
   plugins: [
     //ytiddlywikiResolve,
     debugResolve,
-    nodeResolve({
-      mainFields: ['module', 'browser', 'main']
-    }),
+    nodeResolve(),
     commonjs({
       include: 'node_modules/**'
     })
   ]
 },{
-  input: './rollup/y-tiddlywiki-server.js',
+  input: 'node_modules/y-websocket/bin/utils.js',
   output: [{
-    name: 'YServer',
-    file: 'src/modules/y-tiddlywiki-server.cjs',
+    file: 'src/modules/wsutils.cjs',
     format: 'cjs',
+    exports: 'named',
     sourcemap: true
   }],
   plugins: [
     //ytiddlywikiResolve,
     debugResolve,
-    nodeResolve({
-      mainFields: ['module', 'browser', 'main']
-    }),
+    //nodeResolve(),
     commonjs({
       include: 'node_modules/**'
     })
