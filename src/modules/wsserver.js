@@ -11,7 +11,6 @@ module-type: library
 "use strict";
 
 if($tw.node) {
-	const setupWSConnection = $tw.y.setupWSConnection;
 	const { uniqueNamesGenerator, adjectives, colors, animals, names } = require('unique-names-generator');
 	const URL = require('url').URL;
 	const WS = require('ws');
@@ -29,7 +28,7 @@ function WebSocketServer(options) {
 	// Set the event handlers
 	this.on('listening',this.serverOpened);
 	this.on('close',this.serverClosed);
-	this.on('connection',setupWSConnection);
+	
 }
 
 WebSocketServer.prototype = Object.create(WS.Server.prototype);
@@ -47,40 +46,7 @@ WebSocketServer.prototype.serverClosed = function() {
 
 }
 
-WebSocketServer.prototype.verifyUpgrade = function(request,options) {
-	if(request.url.indexOf("wiki=") == -1) {
-		return false
-	}
-	// Compose the state object
-	var state = {};
-	state.wiki = options.wiki || $tw.wiki;
-	state.boot = options.boot || $tw.boot;
-	state.server = options.server;
-	state.ip = request.headers['x-forwarded-for'] ? request.headers['x-forwarded-for'].split(/\s*,\s*/)[0]:
-		request.connection.remoteAddress;
-	state.serverAddress = state.server.protocol + "://" + this.httpServer.address().address + ":" + this.httpServer.address().port;
-	state.urlInfo = new URL(request.url,state.serverAddress);
-	// Get the principals authorized to access this resource
-	state.authorizationType = "readers";
-	// Check whether anonymous access is granted
-	state.allowAnon = state.server.isAuthorized(state.authorizationType,null);
-	// Authenticate with the first active authenticator
-	let fakeResponse = {
-		writeHead: function(){},
-		end: function(){}
-	}
-	if(state.server.authenticators.length > 0) {
-		if(!state.server.authenticators[0].authenticateRequest(request,fakeResponse,state)) {
-			// Bail if we failed (the authenticator will have -not- sent the response)
-			return false;
-		}	
-	}
-	// Authorize with the authenticated username
-	if(!state.server.isAuthorized(state.authorizationType,state.authenticatedUsername)) {
-		return false;
-	}
-	return state.urlInfo.searchParams.get("wiki") == state.boot.wikiInfo['uuid'] && state
-};
+
 
 /*
 	User methods
@@ -111,14 +77,6 @@ WebSocketServer.prototype.getSessionsByUser = function(username) {
 	return usersSessions;
 }
 
-/**
- * @param {WebsocketSession} session
- * @param {int} timeout
-*/
-WebSocketServer.prototype.refreshSession = function(session,timeout) {
-	let eol = new Date(session.expires).getTime() + timeout;
-	session.expires = new Date(eol).getTime();
-}
 
 exports.WebSocketServer = WebSocketServer;
 

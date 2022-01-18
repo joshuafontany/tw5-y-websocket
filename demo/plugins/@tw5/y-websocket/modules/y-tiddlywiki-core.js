@@ -1,5 +1,8 @@
-var YCore = (function (exports) {
-  'use strict';
+(function (global, factory) {
+  typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
+  typeof define === 'function' && define.amd ? define(['exports'], factory) :
+  (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.YCore = {}));
+})(this, (function (exports) { 'use strict';
 
   /**
    * Utility module to work with key-value stores.
@@ -12381,6 +12384,33 @@ var YCore = (function (exports) {
   };
 
   /**
+   * Modify the content of an awareness update before re-encoding it to an awareness update.
+   *
+   * This might be useful when you have a central server that wants to ensure that clients
+   * cant hijack somebody elses identity.
+   *
+   * @param {Uint8Array} update
+   * @param {function(any):any} modify
+   * @return {Uint8Array}
+   */
+  const modifyAwarenessUpdate = (update, modify) => {
+    const decoder = createDecoder(update);
+    const encoder = createEncoder();
+    const len = readVarUint(decoder);
+    writeVarUint(encoder, len);
+    for (let i = 0; i < len; i++) {
+      const clientID = readVarUint(decoder);
+      const clock = readVarUint(decoder);
+      const state = JSON.parse(readVarString(decoder));
+      const modifiedState = modify(state);
+      writeVarUint(encoder, clientID);
+      writeVarUint(encoder, clock);
+      writeVarString(encoder, JSON.stringify(modifiedState));
+    }
+    return toUint8Array(encoder)
+  };
+
+  /**
    * @param {Awareness} awareness
    * @param {Uint8Array} update
    * @param {any} origin This will be added to the emitted change event
@@ -12440,6 +12470,16 @@ var YCore = (function (exports) {
       }, origin]);
     }
   };
+
+  var awareness = /*#__PURE__*/Object.freeze({
+    __proto__: null,
+    outdatedTimeout: outdatedTimeout,
+    Awareness: Awareness,
+    removeAwarenessStates: removeAwarenessStates,
+    encodeAwarenessUpdate: encodeAwarenessUpdate,
+    modifyAwarenessUpdate: modifyAwarenessUpdate,
+    applyAwarenessUpdate: applyAwarenessUpdate
+  });
 
   var commonjsGlobal = typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
 
@@ -17733,11 +17773,13 @@ var YCore = (function (exports) {
   		} catch (error) {
   			return callback(error)
   		}
+  		return callback(null)
   	}
   	load (title,callback) {
   		let fields = null;
   		try{
   			fields = this._load(title);
+  			this._updateSelection();
   		} catch (error) {
   			return callback(error)
   		}
@@ -17748,9 +17790,11 @@ var YCore = (function (exports) {
   			this.wikiDoc.transact(() => {
   				this._delete(title);
   			},this);
+  			this._updateSelection();
   		} catch (error) {
   			return callback(error)
   		}
+  		return callback(null)
   	}
   	destroy () {
   		this.wikiTiddlers.unobserve(this._tiddlersObserver);
@@ -18252,7 +18296,7 @@ var YCore = (function (exports) {
      * @param {typeof WebSocket} [opts.WebSocketPolyfill] Optionall provide a WebSocket polyfill
      * @param {number} [opts.resyncInterval] Request server state every `resyncInterval` milliseconds
      */
-    constructor (serverUrl, roomname, doc, { authorize = false, authToken = "", connect = true, awareness = new Awareness(doc), params = {}, WebSocketPolyfill = WebSocket, resyncInterval = -1 } = {}) {
+    constructor (serverUrl, roomname, doc, { authorize = false, authToken = "", connect = true, awareness: awareness$1 = new Awareness(doc), params = {}, WebSocketPolyfill = WebSocket, resyncInterval = -1 } = {}) {
       super();
       // ensure that url is always ends with /, then remove it
       while (serverUrl[serverUrl.length - 1] === '/') {
@@ -18268,7 +18312,7 @@ var YCore = (function (exports) {
       this.roomname = roomname;
       this.doc = doc;
       this._WS = WebSocketPolyfill;
-      this.awareness = awareness;
+      this.awareness = awareness$1;
       this.wsconnected = false;
       this.wsconnecting = false;
       this.bcconnected = false;
@@ -18346,7 +18390,7 @@ var YCore = (function (exports) {
         const changedClients = added.concat(updated).concat(removed);
         const encoder = createEncoder();
         writeVarUint(encoder, messageAwareness);
-        writeVarUint8Array(encoder, encodeAwarenessUpdate(awareness, changedClients));
+        writeVarUint8Array(encoder, encodeAwarenessUpdate(awareness$1, changedClients));
         broadcastMessage(this, toUint8Array(encoder));
       };
       this._beforeUnloadHandler = () => {
@@ -18357,7 +18401,7 @@ var YCore = (function (exports) {
       } else if (typeof process !== 'undefined') {
         process.on('exit', () => this._beforeUnloadHandler);
       }
-      awareness.on('update', this._awarenessUpdateHandler);
+      awareness$1.on('update', this._awarenessUpdateHandler);
       this._checkInterval = /** @type {any} */ (setInterval(() => {
         if (this.wsconnected && messageReconnectTimeout < getUnixTime() - this.wsLastMessageReceived) {
           // no message received in a long time - not even your own awareness
@@ -18463,10 +18507,9 @@ var YCore = (function (exports) {
   exports.TiddlywikiBinding = TiddlywikiBinding;
   exports.WebsocketProvider = WebsocketProvider;
   exports.Y = yjs;
+  exports.awarenessProtocol = awareness;
 
   Object.defineProperty(exports, '__esModule', { value: true });
 
-  return exports;
-
-})({});
+}));
 //# sourceMappingURL=y-tiddlywiki-core.js.map

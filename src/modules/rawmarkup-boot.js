@@ -32,16 +32,18 @@ Boot code that is transcluded by a rawmarkup startup tiddler
         }
         $tw.y.persistence.provider.once('synced',() => {
             // Connect the wssession
-            let host = new URL($tw.y.host);
+            const host = new URL($tw.y.host);
             host.protocol = host.protocol.replace('http', 'ws');
-    
-            let serverUrl = host.origin, roomName = host.pathname, options = {
+
+            const awareness = new YCore.awarenessProtocol.Awareness(wikiDoc) 
+            const options = {
                 authorize: true,
-                authToken: $tw.y.uuid,
+                authToken: `${$tw.y.uuid};${awareness.clientID}`,
+                awareness: awareness,
                 connect: true,
                 params: {"wiki": $tw.y.uuid}
             };        
-            $tw.y.session = new YCore.WebsocketProvider(serverUrl,roomName,wikiDoc,options);
+            $tw.y.session = new YCore.WebsocketProvider(host.origin,host.pathname,wikiDoc,options);
 
             $tw.y.session.once('synced',() => {
                 $tw.y.binding = new YCore.TiddlywikiBinding(wikiDoc,$tw,$tw.y.session.awareness);    

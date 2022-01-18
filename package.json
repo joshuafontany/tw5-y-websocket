@@ -46,8 +46,7 @@
     "unique-names-generator": "^4.6.0",
     "uuid": "^8.3.2",
     "ws": "^6.2.1",
-    "y-leveldb": "^0.1.0",
-    "y-tiddlywiki": "git+https://github.com/joshuafontany/y-tiddlywiki.git"
+    "y-leveldb": "^0.1.0"
   },
   "peerDependencies": {
     "tiddlywiki": "^5.2.2",

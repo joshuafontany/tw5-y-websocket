@@ -54,14 +54,15 @@ WebsocketAdaptor.prototype.getTiddlerInfo = function(tiddler) {
 Save a tiddler and invoke the callback with (err,adaptorInfo,revision)
 */
 WebsocketAdaptor.prototype.saveTiddler = function(tiddler,callback,options) {
-    let err = $tw.y.binding.save(tiddler,callback,options)
-	if (err) {
-		return callback(err);
-	} else if(!!$tw.y.fsadaptor) {
-		return $tw.y.fsadaptor.saveTiddler(tiddler,callback,options)
-	} else {
-		return callback(null)
-	}
+    $tw.y.binding.save(tiddler,(err) => {
+		if (err) {
+			return callback(err);
+		} else if(!!$tw.y.fsadaptor) {
+			return $tw.y.fsadaptor.saveTiddler(tiddler,callback,options)
+		} else {
+			return callback(null)
+		}
+	},options)
 };
 
 /*
@@ -79,14 +80,15 @@ WebsocketAdaptor.prototype.loadTiddler = function(title,callback) {
 Delete a tiddler and invoke the callback with (err)
 */
 WebsocketAdaptor.prototype.deleteTiddler = function(title,callback,options) {
-    let err = $tw.y.binding.delete(title,callback,options);
-	if (err) {
-		return callback(err);
-	} else if(!!$tw.y.fsadaptor) {
-		return $tw.y.fsadaptor.deleteTiddler(title,callback,options)
-	} else {
-		return callback(null)
-	}
+    $tw.y.binding.delete(title,(err) => {
+		if (err) {
+			return callback(err);
+		} else if(!!$tw.y.fsadaptor) {
+			return $tw.y.fsadaptor.deleteTiddler(title,callback,options)
+		} else {
+			return callback(null)
+		}
+	},options);
 };
 
 if($tw.node) {

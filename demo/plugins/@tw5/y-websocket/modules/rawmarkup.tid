@@ -22,7 +22,6 @@ $tw.y = {
     persistence: null,
     session: null,
     uuid: "`{{$:/status/UUID}}`",
-    user: null,
     wikiDoc: null 
 }
 </script>

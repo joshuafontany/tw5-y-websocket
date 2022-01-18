@@ -65,7 +65,7 @@ export default [{
   output: [{
     name: 'YCore',
     file: 'src/modules/y-tiddlywiki-core.js',
-    format: 'iife',
+    format: 'umd',
     sourcemap: true
   }],
   plugins: [
